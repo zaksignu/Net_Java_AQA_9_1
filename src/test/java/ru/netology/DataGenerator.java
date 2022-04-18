@@ -2,11 +2,16 @@ package ru.netology;
 
 import com.github.javafaker.Faker;
 
+import com.google.gson.Gson;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.filter.log.LogDetail;
+import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
 import lombok.Value;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+
+import static io.restassured.RestAssured.given;
 
 public class DataGenerator {
     static Faker ghostOne = new Faker(new Locale("RU"));
@@ -14,54 +19,68 @@ public class DataGenerator {
     private DataGenerator() {
     }
 
-    public static String generateOldDate() {
-        String oldDate = LocalDate.now().plusDays(ghostOne.random().nextInt(5, 8)).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        return oldDate;
+    public static String generatelogin() {
+        return ghostOne.name().username();
     }
 
-    public static String generateNewDate() {
-        String newDate = LocalDate.now().plusDays(ghostOne.random().nextInt(9, 13)).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        return newDate;
+    public static String generatePassword() {
+        return ghostOne.aquaTeenHungerForce().character();
     }
 
-    public static String generateCity() {
-        TrueCity addCity = new TrueCity();
-        return addCity.ValidCity();
-    }
-
-    public static String generateName() {
-        String firstName = ghostOne.name().firstName().replaceAll("ё", "е");
-        String lastName = ghostOne.name().lastName().replaceAll("ё", "е");
-        String fullName = firstName + " " + lastName;
-        return fullName;
-    }
-
-    public static String generatePhone() {
-        String phone = "+" + ghostOne.phoneNumber().phoneNumber().toString().replaceAll("\\D", "");
-        return phone;
-    }
 
     public static class Registration {
         private Registration() {
         }
 
-        public static FellowOne generateUser() {
+        public static FellowOne generateUser(String status) {
             FellowOne user = new FellowOne(
-                    generateName(),
-                    generatePhone(),
-                    generateOldDate(),
-                    generateNewDate(),
-                    generateCity());
+                    generatelogin(),
+                    generatePassword(),
+                    status);
             return user;
         }
     }
 
     @Value
     public static class FellowOne {
-        private String fullName;
-        private String phone;
-        private String oldDate;
-        private String newDate;
-        private String nativeCity;
+        private String login;
+        private String password;
+        private String status;
+    }
+
+    @Value
+    public static class ServerComm {
+
+        private static RequestSpecification requestSpec = new RequestSpecBuilder()
+                .setBaseUri("http://localhost")
+                .setPort(9999)
+                .setAccept(ContentType.JSON)
+                .setContentType(ContentType.JSON)
+                .log(LogDetail.ALL)
+                .build();
+
+        static void RegisterUser(FellowOne newUser) {
+            Gson gson = new Gson();
+            // сам запрос
+            given() // "дано"
+                    .spec(requestSpec) // указываем, какую спецификацию используем
+                    .body(gson.toJson(newUser)) // передаём в теле объект, который будет преобразован в JSON
+                    .when() // "когда"
+                    .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
+                    .then() // "тогда ожидаем"
+                    .statusCode(200); // код 200 OK
+        }
+        static FellowOne FullInitOfRandomActiveUser(){
+            FellowOne randomOne = DataGenerator.Registration.generateUser("active");
+            RegisterUser(randomOne);
+            return randomOne;
+
+        }
+        static FellowOne FullInitOfRandomBlockedUser(){
+            FellowOne randomOne = DataGenerator.Registration.generateUser("blocked");
+            RegisterUser(randomOne);
+            return randomOne;
+        }
     }
 }
+
