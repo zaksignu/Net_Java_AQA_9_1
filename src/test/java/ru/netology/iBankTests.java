@@ -1,6 +1,10 @@
 package ru.netology;
 
 
+import com.codeborne.selenide.logevents.SelenideLogger;
+import io.qameta.allure.selenide.AllureSelenide;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +14,11 @@ import static com.codeborne.selenide.Selenide.*;
 
 
 public class iBankTests {
+
+    @BeforeAll
+    static void setUpAll() {
+        SelenideLogger.addListener("allure", new AllureSelenide());
+    }
 
     @BeforeEach
     public void startUp() {
@@ -63,5 +72,11 @@ public class iBankTests {
         $(".form-field [data-test-id=\"action-login\"]").click();
         $("#root .heading").shouldHave(text("Личный кабинет"));
     }
+
+    @AfterAll
+    static void tearDownAll() {
+        SelenideLogger.removeListener("allure");
+    }
+
 
 }
